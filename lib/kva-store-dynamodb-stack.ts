@@ -62,6 +62,22 @@ export class KvaStoreDynamodbStack extends cdk.Stack {
       // function URL settings...
     });
 
+    // DynamoDB backup function
+    const backupFunction = new lambda.Function(this, 'dynamodbBackupFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'backup.handler',
+      code: lambda.Code.fromAsset('lambda/functions'),
+      environment: {
+        TABLE_NAME: tableName
+      },
+      timeout: cdk.Duration.minutes(15),
+    });
+
+    // Grant backup function permission to describe and backup DynamoDB table
+    table.grantReadData(backupFunction);
+    table.grant(backupFunction, 'dynamodb:ListBackups');
+    table.grant(backupFunction, 'dynamodb:CreateBackup');
+
     // Set up API Gateway
     const api = new apigateway.RestApi(this, 'keyValueArrayStoreApi', {
       restApiName: `keyValueArrayStoreApi-${props.envName}`,
